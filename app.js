@@ -19,8 +19,8 @@ request({
                 done : function(err, window){
                     var $ = window.jQuery;
                     var $downloadLinks 
-                                = $("ul:eq(10),ul:eq(11)").find("li a[rel=nofollow]");
-                                //= $("ul li a[rel=nofollow]");
+                                //= $("ul:eq(10),ul:eq(11)").find("li a[rel=nofollow]");
+                                = $("ul li a[rel=nofollow]");
                     if(optimist.argv.regex){
                         $downloadLinks = $downloadLinks.filter(function(){
                               return this.innerHTML.trim().match(optimist.argv.regex);
