@@ -9,6 +9,30 @@ var red, blue, reset;
 red   = '\033[31m';
 blue  = '\033[34m';
 reset = '\033[0m';
+if(optimist.argv.id.indexOf(",") > -1){
+    var childProcess = require('child_process');
+    var courses = optimist.argv.id.split(",");
+    var generateArgs = function(argv,newId){
+       var newArgv = [];
+       for(var key in argv){
+           if(key == "$0" || key == "_") continue;    
+           newArgv.push("--"+key);
+           
+           newArgv.push((key == "id")?newId:argv[key]);
+       }
+       return newArgv;
+    };
+    var forkChildren = function(courses){
+        if(!courses.length) return;
+        var course = courses.shift();
+        console.log("\nStarting a process for "+red+course+reset+"\n");
+        childProcess.fork(process.argv[1],generateArgs(optimist.argv,course)).on("exit",function(){
+            forkChildren(courses);
+        });   
+    };
+    forkChildren(courses);
+}else{
+
 request({
     uri: 'https://www.udacity.com/wiki/'+optimist.argv.id+'/downloads'
     }, function (err, response, body){
@@ -43,20 +67,18 @@ request({
                         var fname 
                         //    = href.match("/[^/]*$")[0].substring(1);
                         //or
-                        //
                             = href.split("/").pop();
                         fname = decodeURIComponent(fname);
                         var seriesFunction = (function (boundObject,next){
-                            var prefix = (optimist.argv.destination)?optimist.argv.destination:__dirname;
-                            if(!prefix.match("/$")) prefix +=  "/";
-                            prefix += boundObject.courseTitle+"/";
-                            fs.mkdir(prefix,function(err){});
-                            if(boundObject.$h2.length) prefix+=boundObject.$h2.text();
-                            else prefix+= "Misc. Files";
-
-                            fs.mkdir(prefix,function(err){});
-                            fname = prefix+"/"+
-                            fname;
+                           var prefix = (optimist.argv.destination)?optimist.argv.destination:__dirname;
+                           if(!prefix.match("/$")) prefix +=  "/";
+                           prefix += boundObject.courseTitle+"/";
+                           fs.mkdir(prefix,function(err){});
+                           if(boundObject.$h2.length) prefix+=boundObject.$h2.text();
+                           else prefix+= "Misc. Files";
+                           fs.mkdir(prefix,function(err){});
+                           fname = prefix+"/"+
+                           fname;
                            var byteNo = 0;
                            try{
                                 var stat = fs.statSync(fname);
@@ -65,7 +87,6 @@ request({
                                 //console.log(err);    
                             }
                             //console.log("starting at byte#"+byteNo);
-                            
                             var fd = fs.createWriteStream(fname, {'flags': 'a'});
                             var downloadRequest = request(
                             {
@@ -103,10 +124,11 @@ request({
                     async.series(seriesFunctions,function(){
                         console.log();
                         console.log(blue+"Thats All, Folks !"+reset);
-                        process.kill(0);//kill self
+                        process.exit(0);//kill self
                         //it won't exit naturally, there must be a pending callback or something :\    
                     });
                  }
         });
         }catch(err){console.error(red+"ERROR : check your internet connection"+reset);}
     });
+}
