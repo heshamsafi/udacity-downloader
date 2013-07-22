@@ -1,10 +1,4 @@
-var request = require("request"),
-    jsdom = require('jsdom'),
-    fs = require("fs"),
-    ProgressBar = require("progress"),
-    async = require("async"),
-    optimist = require("optimist"),
-    path = require('path');
+var optimist = require("optimist");
 var red, blue, reset;
 red   = '\033[31m';
 blue  = '\033[34m';
@@ -23,15 +17,23 @@ if(optimist.argv.id.indexOf(",") > -1){
        return newArgv;
     };
     var forkChildren = function(courses){
-        if(!courses.length) return;
         var course = courses.shift();
+        if(typeof course == "string") course = course.trim();
+        else if(typeof course == "undefined") return;
+        if(!course) return forkChildren(courses);
         console.log("\nStarting a process for "+red+course+reset+"\n");
         childProcess.fork(process.argv[1],generateArgs(optimist.argv,course)).on("exit",function(){
-            forkChildren(courses);
+            return forkChildren(courses);
         });   
     };
     forkChildren(courses);
-}else{
+} else{
+var request = require("request"),
+    jsdom = require('jsdom'),
+    fs = require("fs"),
+    ProgressBar = require("progress"),
+    async = require("async"),
+    path = require('path');
 
 request({
     uri: 'https://www.udacity.com/wiki/'+optimist.argv.id+'/downloads'
@@ -106,7 +108,8 @@ request({
                                     return;
                                 }
                                 var len = parseInt(res.headers['content-length'], 10);//if it is chuncked then we are screwed :)
-                                var bar = new ProgressBar(blue+boundObject.fname+reset+' [:bar] :percent, :elapsedm elapsed, :etam remaining, '+(len/(1024*1024)).toFixed(2)+'MB', { complete: '=', incomplete: ' ', width: 20, total: len});
+                                var bar = new ProgressBar(blue+boundObject.fname+reset+' [:bar] :percent, :elapsedm elapsed, :etam remaining, '+((len+byteNo)/(1024*1024)).toFixed(2)+'MB', { complete: '=', incomplete: ' ', width: 20, total: len+byteNo});
+                                bar.tick(byteNo);
                                 downloadRequest.on('data', function(chunk){
                                     fd.write(chunk, encoding='binary'); 
                                     bar.tick(chunk.length);
